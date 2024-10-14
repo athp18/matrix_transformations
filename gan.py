@@ -305,7 +305,7 @@ if __name__ == "__main__":
     input_dim = 100
     hidden_dim1 = 256
     hidden_dim2 = 256
-    output_dim = 28 * 28
+    output_dim = 784
 
     generator = Generator(input_dim, hidden_dim1, hidden_dim2, output_dim).to(device)
     discriminator = Discriminator(output_dim, hidden_dim1, hidden_dim2, 1).to(device)
