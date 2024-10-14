@@ -2,7 +2,6 @@ import torch
 import torchvision
 import torchvision.transforms as transforms
 import matplotlib.pyplot as plt
-import numpy as np
 
 def sigmoid(x):
     return 1 / (1 + torch.exp(-x))
@@ -25,15 +24,18 @@ def drelu(x):
     # Derivative of ReLU
     return (x > 0).float()
 
-def initialize_weights(input_dim, hidden_dim1, hidden_dim2, output_dim):
+def initialize_weights(input_dim, hidden_dim1, hidden_dim2, output_dim, extra_layer=False):
     # Initialize weights with small random values
     W1 = torch.randn(input_dim, hidden_dim1, device=device) * 0.01
     b1 = torch.zeros(1, hidden_dim1, device=device)
     W2 = torch.randn(hidden_dim1, hidden_dim2, device=device) * 0.01
     b2 = torch.zeros(1, hidden_dim2, device=device)
-    W3 = torch.randn(hidden_dim2, output_dim, device=device) * 0.01
-    b3 = torch.zeros(1, output_dim, device=device)
-    return W1, b1, W2, b2, W3, b3
+    W3 = torch.randn(hidden_dim2, hidden_dim2, device=device) * 0.01
+    b3 = torch.zeros(1, hidden_dim2, device=device)
+    W4 = torch.randn(hidden_dim2, output_dim, device=device) * 0.01
+    b4 = torch.zeros(1, output_dim, device=device)
+    
+    return W1, b1, W2, b2, W3, b3, W4, b4
 
 class Generator:
     def __init__(self, input_dim, hidden_dim1, hidden_dim2, output_dim):
