@@ -1,0 +1,1 @@
+An implementation of a standard Generative Adversarial Network (GAN) with pure PyTorch tensors without its abstractions (i.e. torch.nn, torch.optim, or even autograd). This is basically how would I do it in NumPy, but uses PyTorch's built-in GPU support for faster training.
