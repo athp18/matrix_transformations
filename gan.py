@@ -257,9 +257,7 @@ def train(generator, discriminator, data_loader, num_epochs=1000, lr=0.01):
     
     for epoch in range(num_epochs):
         for real_images, _ in data_loader:
-            real_images = flatten(real_images.to(device))
-            real_data = custom_preprocess(real_images)
-            
+            real_data = normalize(flatten(real_images.to(device)))
             # Generate fake data
             z = torch.randn((real_data.size(0), generator.W1.size(0)), device=device)
             fake_data = generator.forward(z)
