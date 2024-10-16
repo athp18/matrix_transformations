@@ -17,7 +17,7 @@ def sigmoid(x):
     """
     return 1 / (1 + torch.exp(-x))
 
-def dsigmoid(y):
+def sigmoid_derivative(y):
     """
     Compute the derivative of the sigmoid function.
 
@@ -29,53 +29,53 @@ def dsigmoid(y):
     """
     return y * (1 - y)
 
-def tanh(x):
+def tanh_derivative(x):
     """
-    Compute the tanh of x.
+    Compute the tanh_derivative of x.
 
     Args:
     x (torch.Tensor): Input tensor.
 
     Returns:
-    torch.Tensor: Output tensor after applying the tanh function.
+    torch.Tensor: Output tensor after applying the tanh_derivative function.
     """
     e_pos = torch.exp(x)
     e_neg = torch.exp(-x)
     return (e_pos - e_neg) / (e_pos + e_neg)
 
-def dtanh(y):
+def dtanh_derivative(y):
     """
-    Compute the derivative of the tanh function.
+    Compute the derivative of the tanh_derivative function.
 
     Args:
-    y (torch.Tensor): Output of tanh(x).
+    y (torch.Tensor): Output of tanh_derivative(x).
 
     Returns:
-    torch.Tensor: Derivative of the tanh function.
+    torch.Tensor: Derivative of the tanh_derivative function.
     """
     return 1 - y ** 2
 
-def relu(x):
+def relu_derivative(x):
     """
-    Compute the ReLU of x.
+    Compute the relu_derivative of x.
 
     Args:
     x (torch.Tensor): Input tensor.
 
     Returns:
-    torch.Tensor: Output tensor after applying the ReLU function.
+    torch.Tensor: Output tensor after applying the relu_derivative function.
     """
     return (x > 0).float() * x
 
-def drelu(x):
+def drelu_derivative(x):
     """
-    Compute the derivative of the ReLU function.
+    Compute the derivative of the relu_derivative function.
 
     Args:
     x (torch.Tensor): Input tensor.
 
     Returns:
-    torch.Tensor: Derivative of the ReLU function.
+    torch.Tensor: Derivative of the relu_derivative function.
     """
     return (x > 0).float()
 
@@ -135,13 +135,13 @@ class Generator:
         """
         self.z = z
         self.a1 = torch.matmul(self.z, self.W1) + self.b1
-        self.h1 = relu(self.a1)
+        self.h1 = relu_derivative(self.a1)
         self.a2 = torch.matmul(self.h1, self.W2) + self.b2
-        self.h2 = relu(self.a2)
+        self.h2 = relu_derivative(self.a2)
         self.a3 = torch.matmul(self.h2, self.W3) + self.b3
-        self.h3 = relu(self.a3)
+        self.h3 = relu_derivative(self.a3)
         self.a4 = torch.matmul(self.h3, self.W4) + self.b4
-        self.output = tanh(self.a4)  # Use tanh to bound outputs between -1 and 1
+        self.output = tanh_derivative(self.a4)  # Use tanh_derivative to bound outputs between -1 and 1
         return self.output
 
     def backward(self, d_output):
@@ -151,23 +151,23 @@ class Generator:
         Args:
         d_output (torch.Tensor): Gradient of the loss with respect to the output.
         """
-        # Derivative of tanh activation
-        d_a4 = d_output * dtanh(self.output)
+        # Derivative of tanh_derivative activation
+        d_a4 = d_output * dtanh_derivative(self.output)
         d_W4 = torch.matmul(self.h3.t(), d_a4)
         d_b4 = torch.sum(d_a4, dim=0, keepdim=True)
 
         d_h3 = torch.matmul(d_a4, self.W4.t())
-        d_a3 = d_h3 * drelu(self.a3)
+        d_a3 = d_h3 * drelu_derivative(self.a3)
         d_W3 = torch.matmul(self.h2.t(), d_a3)
         d_b3 = torch.sum(d_a3, dim=0, keepdim=True)
 
         d_h2 = torch.matmul(d_a3, self.W3.t())
-        d_a2 = d_h2 * drelu(self.a2)
+        d_a2 = d_h2 * drelu_derivative(self.a2)
         d_W2 = torch.matmul(self.h1.t(), d_a2)
         d_b2 = torch.sum(d_a2, dim=0, keepdim=True)
 
         d_h1 = torch.matmul(d_a2, self.W2.t())
-        d_a1 = d_h1 * drelu(self.a1)
+        d_a1 = d_h1 * drelu_derivative(self.a1)
         d_W1 = torch.matmul(self.z.t(), d_a1)
         d_b1 = torch.sum(d_a1, dim=0, keepdim=True)
 
@@ -213,11 +213,11 @@ class Discriminator:
         """
         self.x = x
         self.a1 = torch.matmul(self.x, self.W1) + self.b1
-        self.h1 = relu(self.a1)
+        self.h1 = relu_derivative(self.a1)
         self.a2 = torch.matmul(self.h1, self.W2) + self.b2
-        self.h2 = relu(self.a2)
+        self.h2 = relu_derivative(self.a2)
         self.a3 = torch.matmul(self.h2, self.W3) + self.b3
-        self.h3 = relu(self.a3)
+        self.h3 = relu_derivative(self.a3)
         self.a4 = torch.matmul(self.h3, self.W4) + self.b4
         self.output = sigmoid(self.a4)
         return self.output
@@ -230,22 +230,22 @@ class Discriminator:
         d_output (torch.Tensor): Gradient of the loss with respect to the output.
         """
         # Derivative of sigmoid activation
-        d_a4 = d_output * dsigmoid(self.output)
+        d_a4 = d_output * sigmoid_derivative(self.output)
         d_W4 = torch.matmul(self.h3.t(), d_a4)
         d_b4 = torch.sum(d_a4, dim=0, keepdim=True)
 
         d_h3 = torch.matmul(d_a4, self.W4.t())
-        d_a3 = d_h3 * drelu(self.a3)
+        d_a3 = d_h3 * drelu_derivative(self.a3)
         d_W3 = torch.matmul(self.h2.t(), d_a3)
         d_b3 = torch.sum(d_a3, dim=0, keepdim=True)
 
         d_h2 = torch.matmul(d_a3, self.W3.t())
-        d_a2 = d_h2 * drelu(self.a2)
+        d_a2 = d_h2 * drelu_derivative(self.a2)
         d_W2 = torch.matmul(self.h1.t(), d_a2)
         d_b2 = torch.sum(d_a2, dim=0, keepdim=True)
 
         d_h1 = torch.matmul(d_a2, self.W2.t())
-        d_a1 = d_h1 * drelu(self.a1)
+        d_a1 = d_h1 * drelu_derivative(self.a1)
         d_W1 = torch.matmul(self.x.t(), d_a1)
         d_b1 = torch.sum(d_a1, dim=0, keepdim=True)
 
@@ -259,7 +259,7 @@ class Discriminator:
         self.d_W4 += d_W4
         self.d_b4 += d_b4
 
-def binary_cross_entropy(output, target):
+def compute_bce_loss(output, target):
     """
     Compute the binary cross-entropy loss.
 
@@ -338,7 +338,7 @@ def train(generator, discriminator, data_loader, num_epochs=1000, lr=0.01):
             fake_labels = torch.zeros(batch_size, 1, device=device)
             
             # Train Discriminator
-            # Zero gradients
+            # Zero out the gradients
             discriminator.d_W1 = torch.zeros_like(discriminator.W1)
             discriminator.d_b1 = torch.zeros_like(discriminator.b1)
             discriminator.d_W2 = torch.zeros_like(discriminator.W2)
@@ -348,11 +348,11 @@ def train(generator, discriminator, data_loader, num_epochs=1000, lr=0.01):
             discriminator.d_W4 = torch.zeros_like(discriminator.W4)
             discriminator.d_b4 = torch.zeros_like(discriminator.b4)
             
-            # Forward pass real data
+            # Forward pass on real data
             real_output = discriminator.forward(real_data)
             # Compute loss on real data
-            loss_d_real = binary_cross_entropy(real_output, real_labels)
-            # Compute gradient of loss w.r.t. discriminator output
+            loss_d_real = compute_bce_loss(real_output, real_labels)
+            # Compute gradient of loss wrt discriminator output
             d_loss_d_output_real = (real_output - real_labels) / batch_size
             # Backward pass on real data
             discriminator.backward(d_loss_d_output_real)
@@ -362,8 +362,8 @@ def train(generator, discriminator, data_loader, num_epochs=1000, lr=0.01):
             fake_data = generator.forward(z)
             fake_output = discriminator.forward(fake_data.detach())
             # Compute loss on fake data
-            loss_d_fake = binary_cross_entropy(fake_output, fake_labels)
-            # Compute gradient of loss w.r.t. discriminator output
+            loss_d_fake = compute_bce_loss(fake_output, fake_labels)
+            # Compute gradient of loss wrt discriminator output
             d_loss_d_output_fake = (fake_output - fake_labels) / batch_size
             # Backward pass on fake data
             discriminator.backward(d_loss_d_output_fake)
@@ -378,7 +378,7 @@ def train(generator, discriminator, data_loader, num_epochs=1000, lr=0.01):
             )
             
             # Train Generator
-            # Zero gradients
+            # Zero out the gradients
             generator.d_W1 = torch.zeros_like(generator.W1)
             generator.d_b1 = torch.zeros_like(generator.b1)
             generator.d_W2 = torch.zeros_like(generator.W2)
@@ -391,12 +391,12 @@ def train(generator, discriminator, data_loader, num_epochs=1000, lr=0.01):
             # Forward pass fake data through discriminator
             fake_output = discriminator.forward(fake_data)
             # Compute generator loss
-            loss_g = binary_cross_entropy(fake_output, real_labels)
+            loss_g = compute_bce_loss(fake_output, real_labels)
             # Compute gradient of loss w.r.t. discriminator output
             d_loss_g_output = (fake_output - real_labels) / batch_size
             # Backward pass through discriminator to get gradients w.r.t. fake data
             discriminator.backward(d_loss_g_output)
-            d_fake_data = torch.matmul(d_loss_g_output * dsigmoid(discriminator.output), discriminator.W1.t())
+            d_fake_data = torch.matmul(d_loss_g_output * sigmoid_derivative(discriminator.output), discriminator.W1.t())
             # Backward pass through generator
             generator.backward(d_fake_data)
             # Update generator parameters
