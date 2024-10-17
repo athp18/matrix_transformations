@@ -15,7 +15,8 @@ def relu(x):
     Returns:
     torch.Tensor: Output tensor after applying ReLU.
     """
-    return torch.maximum(torch.zeros_like(x), x)
+    zeros = torch.zeros_like(x)
+    return torch.maximum(zeros, x)
 
 def relu_derivative(x):
     """
@@ -270,7 +271,7 @@ def train(autoencoder, data_loader, num_epochs=5, lr=0.01):
     for epoch in range(num_epochs):
         epoch_loss = 0
         for batch_idx, (images, _) in enumerate(data_loader):
-            # Prepare input data
+            # Prepare input data and move to device
             inputs = images.view(-1, 28*28).to(device)
             
             # Forward pass
