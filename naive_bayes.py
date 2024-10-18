@@ -1,11 +1,7 @@
 import torch
 from torch.utils.data import Dataset, DataLoader
 from torchvision.datasets import CIFAR10
-import numpy as np
-
-def transform(image):
-    image = torch.tensor(image, dtype=torch.float32) / 255.0
-    return image
+from utils import *
 
 class NaiveBayes:
     def __init__(self, num_features, num_classes):
