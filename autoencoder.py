@@ -2,57 +2,7 @@ import torch
 import matplotlib.pyplot as plt
 from torchvision.datasets import MNIST
 from torch.utils.data import DataLoader
-
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-def relu(x):
-    """
-    Compute the ReLU activation function.
-    
-    Args:
-    x (torch.Tensor): Input tensor.
-    
-    Returns:
-    torch.Tensor: Output tensor after applying ReLU.
-    """
-    zeros = torch.zeros_like(x)
-    return torch.maximum(zeros, x)
-
-def relu_derivative(x):
-    """
-    Compute the derivative of the ReLU function.
-    
-    Args:
-    x (torch.Tensor): Input tensor.
-    
-    Returns:
-    torch.Tensor: Derivative of the ReLU function.
-    """
-    return (x > 0).float()
-
-def sigmoid(x):
-    """
-    Compute the sigmoid activation function.
-    
-    Args:
-    x (torch.Tensor): Input tensor.
-    
-    Returns:
-    torch.Tensor: Output tensor after applying sigmoid.
-    """
-    return 1 / (1 + torch.exp(-x))
-
-def sigmoid_derivative(y):
-    """
-    Compute the derivative of the sigmoid function.
-    
-    Args:
-    y (torch.Tensor): Output of sigmoid(x).
-    
-    Returns:
-    torch.Tensor: Derivative of the sigmoid function.
-    """
-    return y * (1 - y)
+from utils import *
 
 def initialize_weights(input_dim, hidden_dim1, hidden_dim2, code_dim):
     """
@@ -202,10 +152,6 @@ def load_mnist():
     Returns:
     torch DataLoader: DataLoader for the MNIST dataset.
     """
-    # Custom transformation: Convert images to tensors and normalize to [0, 1]
-    def transform(image):
-        image = torch.tensor(image, dtype=torch.float32) / 255.0
-        return image
     
     train_dataset = MNIST(root='./data', train=True, download=True, transform=transform)
     train_loader = DataLoader(dataset=train_dataset, batch_size=64, shuffle=True)
