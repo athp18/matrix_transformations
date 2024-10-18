@@ -2,28 +2,15 @@ import torch
 import matplotlib.pyplot as plt
 from torchvision.datasets import MNIST
 from torch.utils.data import DataLoader
+from utils import *
 
-# Set device
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 epsilon = 1e-8
-
-def sigmoid(x):
-    return 1 / (1 + torch.exp(-x))
-
-def sigmoid_derivative(y):
-    return y * (1 - y)
 
 def tanh(x):
     return torch.tanh(x)
 
 def tanh_derivative(y):
     return 1 - y ** 2
-
-def relu(x):
-    return torch.maximum(torch.zeros_like(x), x)
-
-def relu_derivative(x):
-    return (x > 0).float()
 
 def initialize_weights(input_dim, hidden_dim1, hidden_dim2, output_dim):
     W1 = torch.randn(input_dim, hidden_dim1, device=device) * 0.01
