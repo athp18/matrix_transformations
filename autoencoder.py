@@ -144,6 +144,15 @@ class Autoencoder:
         """
         for key in self.weights:
             self.weights[key] -= lr * self.grads[key]
+            
+    def decode(self, code):
+        z4 = torch.matmul(code, self.weights['W4']) + self.weights['b4']
+        h3 = relu(z4)
+        z5 = torch.matmul(h3, self.weights['W5']) + self.weights['b5']
+        h4 = relu(z5)
+        z6 = torch.matmul(h4, self.weights['W6']) + self.weights['b6']
+        output = sigmoid(z6)
+        return output
 
 def load_mnist():
     """
@@ -182,6 +191,25 @@ def mse_loss_derivative(output, target):
     torch.Tensor: Derivative of the loss with respect to the output.
     """
     return (2 * (output - target)) / output.size(0)
+
+def generate_image(autoencoder, code_dim, num_images=10):
+    autoencoder.weights['W4'].requires_grad = False
+    autoencoder.weights['W5'].requires_grad = False
+    autoencoder.weights['W6'].requires_grad = False
+    
+    with torch.no_grad():
+        # Sample random latent codes from a normal distribution
+        codes = torch.randn(num_images, code_dim).to(device)
+        generated = autoencoder.decode(codes)
+        return generated
+
+def visualize_generated_images(generated_data, n=5):
+    generated_images = generated_data.view(-1, 28, 28).cpu().detach()
+    fig, axes = plt.subplots(1, n, figsize=(10, 2))
+    for i in range(n):
+        axes[i].imshow(generated_images[i], cmap='gray')
+        axes[i].axis('off')
+    plt.show()
 
 def visualize_results(original_data, reconstructed_data, n=5):
     """
