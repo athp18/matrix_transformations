@@ -1,16 +1,28 @@
 import torch
+from PIL import Image
+import numpy as np
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 def transform(image):
-  """
-  Transform an image and normalize it to grayscale so that its values are between 0 and 1.
-
-  Args:
-  image (PIL.Image): Image to be transformed.
-  """
-  image = torch.tensor(image, dtype=torch.float32) / 255.0
-  return image
+    """
+    Transform an image to grayscale and normalize it to values between 0 and 1.
+    
+    Args:
+    image (PIL.Image.Image or torch.Tensor): Image to be transformed.
+    
+    Returns:
+    torch.Tensor: Transformed and normalized image.
+    """
+    if isinstance(image, Image.Image):
+        # first convert to grayscale
+        image = image.convert('L')
+        image = torch.tensor(np.array(image), dtype=torch.float32) / 255.0
+    elif isinstance(image, torch.Tensor):
+        image /= 255.0
+    else:
+        raise TypeError("Input must be a PIL Image or a torch.Tensor")
+    return image
 
 def relu(x):
     """
