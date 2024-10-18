@@ -1,5 +1,6 @@
 import torch
 import matplotlib.pyplot as plt
+%matplotlib inline
 from torchvision.datasets import MNIST
 from torch.utils.data import DataLoader
 from utils import *
