@@ -5,144 +5,62 @@ from torch.utils.data import DataLoader
 
 # Set device
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+epsilon = 1e-8
 
 def sigmoid(x):
-    """
-    Compute the sigmoid of x.
-
-    Args:
-    x (torch.Tensor): Input tensor.
-
-    Returns:
-    torch.Tensor: Output tensor after applying the sigmoid function.
-    """
     return 1 / (1 + torch.exp(-x))
 
 def sigmoid_derivative(y):
-    """
-    Compute the derivative of the sigmoid function.
-
-    Args:
-    y (torch.Tensor): Output of sigmoid(x).
-
-    Returns:
-    torch.Tensor: Derivative of the sigmoid function.
-    """
     return y * (1 - y)
 
 def tanh(x):
-    """
-    Compute the hyperbolic tangent of x.
-
-    Args:
-    x (torch.Tensor): Input tensor.
-
-    Returns:
-    torch.Tensor: Output tensor after applying the tanh function.
-    """
     return torch.tanh(x)
 
 def tanh_derivative(y):
-    """
-    Compute the derivative of the tanh function.
-
-    Args:
-    y (torch.Tensor): Output of tanh(x).
-
-    Returns:
-    torch.Tensor: Derivative of the tanh function.
-    """
     return 1 - y ** 2
 
 def relu(x):
-    """
-    Compute the ReLU activation function.
-
-    Args:
-    x (torch.Tensor): Input tensor.
-
-    Returns:
-    torch.Tensor: Output tensor after applying ReLU.
-    """
     return torch.maximum(torch.zeros_like(x), x)
 
 def relu_derivative(x):
-    """
-    Compute the derivative of the ReLU function.
-
-    Args:
-    x (torch.Tensor): Input tensor.
-
-    Returns:
-    torch.Tensor: Derivative of the ReLU function.
-    """
     return (x > 0).float()
 
 def initialize_weights(input_dim, hidden_dim1, hidden_dim2, output_dim):
-    """
-    Initialize the weights and biases for a neural network.
-
-    Args:
-    input_dim (int): Number of input features.
-    hidden_dim1 (int): Number of units in the first hidden layer.
-    hidden_dim2 (int): Number of units in the second hidden layer.
-    output_dim (int): Number of output features.
-
-    Returns:
-    Tuple[torch.Tensor]: Initialized weights and biases for the neural network.
-    """
     W1 = torch.randn(input_dim, hidden_dim1, device=device) * 0.01
+    W1.requires_grad = False
     b1 = torch.zeros(1, hidden_dim1, device=device)
+    b1.requires_grad = False
     W2 = torch.randn(hidden_dim1, hidden_dim2, device=device) * 0.01
+    W2.requires_grad = False
     b2 = torch.zeros(1, hidden_dim2, device=device)
+    b2.requires_grad = False
     W3 = torch.randn(hidden_dim2, hidden_dim2, device=device) * 0.01
+    W3.requires_grad = False
     b3 = torch.zeros(1, hidden_dim2, device=device)
+    b3.requires_grad = False
     W4 = torch.randn(hidden_dim2, output_dim, device=device) * 0.01
+    W4.requires_grad = False
     b4 = torch.zeros(1, output_dim, device=device)
+    b4.requires_grad = False
 
     return W1, b1, W2, b2, W3, b3, W4, b4
 
 class Generator:
-    """
-    Generator class for GAN.
-
-    Attributes:
-    W1, W2, W3, W4 (torch.Tensor): Weights for each layer.
-    b1, b2, b3, b4 (torch.Tensor): Biases for each layer.
-    """
     def __init__(self, input_dim, hidden_dim1, hidden_dim2, output_dim):
-        """
-        Initialize the Generator.
-
-        Args:
-        input_dim (int): Number of input features (e.g., latent space dimension).
-        hidden_dim1 (int): Number of units in the first hidden layer.
-        hidden_dim2 (int): Number of units in the second hidden layer.
-        output_dim (int): Number of output features (e.g., flattened image size).
-        """
         self.W1, self.b1, self.W2, self.b2, self.W3, self.b3, self.W4, self.b4 = initialize_weights(
             input_dim, hidden_dim1, hidden_dim2, output_dim
         )
         # Initialize gradients
-        self.d_W1 = torch.zeros_like(self.W1)
-        self.d_b1 = torch.zeros_like(self.b1)
-        self.d_W2 = torch.zeros_like(self.W2)
-        self.d_b2 = torch.zeros_like(self.b2)
-        self.d_W3 = torch.zeros_like(self.W3)
-        self.d_b3 = torch.zeros_like(self.b3)
-        self.d_W4 = torch.zeros_like(self.W4)
-        self.d_b4 = torch.zeros_like(self.b4)
+        self.grad_W1 = torch.zeros_like(self.W1)
+        self.grad_b1 = torch.zeros_like(self.b1)
+        self.grad_W2 = torch.zeros_like(self.W2)
+        self.grad_b2 = torch.zeros_like(self.b2)
+        self.grad_W3 = torch.zeros_like(self.W3)
+        self.grad_b3 = torch.zeros_like(self.b3)
+        self.grad_W4 = torch.zeros_like(self.W4)
+        self.grad_b4 = torch.zeros_like(self.b4)
 
     def forward(self, z):
-        """
-        Forward pass for the Generator.
-
-        Args:
-        z (torch.Tensor): Input noise tensor (latent space).
-
-        Returns:
-        torch.Tensor: Output tensor representing generated data.
-        """
         self.z = z
         self.a1 = torch.matmul(self.z, self.W1) + self.b1
         self.h1 = relu(self.a1)
@@ -151,87 +69,56 @@ class Generator:
         self.a3 = torch.matmul(self.h2, self.W3) + self.b3
         self.h3 = relu(self.a3)
         self.a4 = torch.matmul(self.h3, self.W4) + self.b4
-        self.output = tanh(self.a4)  # Use tanh to bound outputs between -1 and 1
+        self.output = tanh(self.a4)
         return self.output
 
     def backward(self, d_output):
-        """
-        Backward pass for the Generator.
-
-        Args:
-        d_output (torch.Tensor): Gradient of the loss with respect to the output.
-        """
         # Derivative of tanh activation
         d_a4 = d_output * tanh_derivative(self.output)
-        d_W4 = torch.matmul(self.h3.t(), d_a4)
-        d_b4 = torch.sum(d_a4, dim=0, keepdim=True)
+        self.grad_W4 += torch.matmul(self.h3.t(), d_a4)
+        self.grad_b4 += torch.sum(d_a4, dim=0, keepdim=True)
 
         d_h3 = torch.matmul(d_a4, self.W4.t())
         d_a3 = d_h3 * relu_derivative(self.a3)
-        d_W3 = torch.matmul(self.h2.t(), d_a3)
-        d_b3 = torch.sum(d_a3, dim=0, keepdim=True)
+        self.grad_W3 += torch.matmul(self.h2.t(), d_a3)
+        self.grad_b3 += torch.sum(d_a3, dim=0, keepdim=True)
 
         d_h2 = torch.matmul(d_a3, self.W3.t())
         d_a2 = d_h2 * relu_derivative(self.a2)
-        d_W2 = torch.matmul(self.h1.t(), d_a2)
-        d_b2 = torch.sum(d_a2, dim=0, keepdim=True)
+        self.grad_W2 += torch.matmul(self.h1.t(), d_a2)
+        self.grad_b2 += torch.sum(d_a2, dim=0, keepdim=True)
 
         d_h1 = torch.matmul(d_a2, self.W2.t())
         d_a1 = d_h1 * relu_derivative(self.a1)
-        d_W1 = torch.matmul(self.z.t(), d_a1)
-        d_b1 = torch.sum(d_a1, dim=0, keepdim=True)
+        self.grad_W1 += torch.matmul(self.z.t(), d_a1)
+        self.grad_b1 += torch.sum(d_a1, dim=0, keepdim=True)
 
-        # Accumulate gradients
-        self.d_W1 += d_W1
-        self.d_b1 += d_b1
-        self.d_W2 += d_W2
-        self.d_b2 += d_b2
-        self.d_W3 += d_W3
-        self.d_b3 += d_b3
-        self.d_W4 += d_W4
-        self.d_b4 += d_b4
+    def zero_grad(self):
+        self.grad_W1.zero_()
+        self.grad_b1.zero_()
+        self.grad_W2.zero_()
+        self.grad_b2.zero_()
+        self.grad_W3.zero_()
+        self.grad_b3.zero_()
+        self.grad_W4.zero_()
+        self.grad_b4.zero_()
 
 class Discriminator:
-    """
-    Discriminator class for GAN.
-
-    Attributes:
-    W1, W2, W3, W4 (torch.Tensor): Weights for each layer.
-    b1, b2, b3, b4 (torch.Tensor): Biases for each layer.
-    """
     def __init__(self, input_dim, hidden_dim1, hidden_dim2, output_dim):
-        """
-        Initialize the Discriminator.
-
-        Args:
-        input_dim (int): Number of input features (e.g., flattened image size).
-        hidden_dim1 (int): Number of units in the first hidden layer.
-        hidden_dim2 (int): Number of units in the second hidden layer.
-        output_dim (int): Number of output features (usually 1 for binary classification).
-        """
         self.W1, self.b1, self.W2, self.b2, self.W3, self.b3, self.W4, self.b4 = initialize_weights(
             input_dim, hidden_dim1, hidden_dim2, output_dim
         )
-        # Initialize gradients
-        self.d_W1 = torch.zeros_like(self.W1)
-        self.d_b1 = torch.zeros_like(self.b1)
-        self.d_W2 = torch.zeros_like(self.W2)
-        self.d_b2 = torch.zeros_like(self.b2)
-        self.d_W3 = torch.zeros_like(self.W3)
-        self.d_b3 = torch.zeros_like(self.b3)
-        self.d_W4 = torch.zeros_like(self.W4)
-        self.d_b4 = torch.zeros_like(self.b4)
+        #initialize the gradients
+        self.grad_W1 = torch.zeros_like(self.W1)
+        self.grad_b1 = torch.zeros_like(self.b1)
+        self.grad_W2 = torch.zeros_like(self.W2)
+        self.grad_b2 = torch.zeros_like(self.b2)
+        self.grad_W3 = torch.zeros_like(self.W3)
+        self.grad_b3 = torch.zeros_like(self.b3)
+        self.grad_W4 = torch.zeros_like(self.W4)
+        self.grad_b4 = torch.zeros_like(self.b4)
 
     def forward(self, x):
-        """
-        Forward pass for the Discriminator.
-
-        Args:
-        x (torch.Tensor): Input tensor (real or fake data).
-
-        Returns:
-        torch.Tensor: Output tensor representing the probability of real data.
-        """
         self.x = x
         self.a1 = torch.matmul(self.x, self.W1) + self.b1
         self.h1 = relu(self.a1)
@@ -244,90 +131,43 @@ class Discriminator:
         return self.output
 
     def backward(self, d_output):
-        """
-        Backward pass for the Discriminator.
-
-        Args:
-        d_output (torch.Tensor): Gradient of the loss with respect to the output.
-        """
         # Derivative of sigmoid activation
         d_a4 = d_output * sigmoid_derivative(self.output)
-        d_W4 = torch.matmul(self.h3.t(), d_a4)
-        d_b4 = torch.sum(d_a4, dim=0, keepdim=True)
+        self.grad_W4 += torch.matmul(self.h3.t(), d_a4)
+        self.grad_b4 += torch.sum(d_a4, dim=0, keepdim=True)
 
         d_h3 = torch.matmul(d_a4, self.W4.t())
         d_a3 = d_h3 * relu_derivative(self.a3)
-        d_W3 = torch.matmul(self.h2.t(), d_a3)
-        d_b3 = torch.sum(d_a3, dim=0, keepdim=True)
+        self.grad_W3 += torch.matmul(self.h2.t(), d_a3)
+        self.grad_b3 += torch.sum(d_a3, dim=0, keepdim=True)
 
         d_h2 = torch.matmul(d_a3, self.W3.t())
         d_a2 = d_h2 * relu_derivative(self.a2)
-        d_W2 = torch.matmul(self.h1.t(), d_a2)
-        d_b2 = torch.sum(d_a2, dim=0, keepdim=True)
+        self.grad_W2 += torch.matmul(self.h1.t(), d_a2)
+        self.grad_b2 += torch.sum(d_a2, dim=0, keepdim=True)
 
         d_h1 = torch.matmul(d_a2, self.W2.t())
         d_a1 = d_h1 * relu_derivative(self.a1)
-        d_W1 = torch.matmul(self.x.t(), d_a1)
-        d_b1 = torch.sum(d_a1, dim=0, keepdim=True)
+        self.grad_W1 += torch.matmul(self.x.t(), d_a1)
+        self.grad_b1 += torch.sum(d_a1, dim=0, keepdim=True)
 
-        # Accumulate gradients
-        self.d_W1 += d_W1
-        self.d_b1 += d_b1
-        self.d_W2 += d_W2
-        self.d_b2 += d_b2
-        self.d_W3 += d_W3
-        self.d_b3 += d_b3
-        self.d_W4 += d_W4
-        self.d_b4 += d_b4
+    def zero_grad(self):
+        self.grad_W1.zero_()
+        self.grad_b1.zero_()
+        self.grad_W2.zero_()
+        self.grad_b2.zero_()
+        self.grad_W3.zero_()
+        self.grad_b3.zero_()
+        self.grad_W4.zero_()
+        self.grad_b4.zero_()
 
 def compute_bce_loss(output, target):
-    """
-    Compute the binary cross-entropy loss.
-
-    Args:
-    output (torch.Tensor): Predicted probabilities.
-    target (torch.Tensor): Ground truth labels.
-
-    Returns:
-    torch.Tensor: Binary cross-entropy loss.
-    """
-    epsilon = 1e-8  # Small value to avoid log(0)
     return -torch.mean(target * torch.log(output + epsilon) + (1 - target) * torch.log(1 - output + epsilon))
 
 def compute_bce_loss_derivative(output, target):
-    """
-    Compute the derivative of the binary cross-entropy loss with respect to the output.
-
-    Args:
-    output (torch.Tensor): Predicted probabilities.
-    target (torch.Tensor): Ground truth labels.
-
-    Returns:
-    torch.Tensor: Derivative of the loss with respect to the output.
-    """
-    epsilon = 1e-8  # Small value to avoid division by zero
     return (output - target) / ((output + epsilon) * (1 - output + epsilon)) / output.size(0)
 
-def update_params(params, grads, lr):
-    """
-    Update parameters using gradient descent.
-
-    Args:
-    params (List[torch.Tensor]): List of parameters to update.
-    grads (List[torch.Tensor]): List of gradients for each parameter.
-    lr (float): Learning rate.
-    """
-    for param, grad in zip(params, grads):
-        param -= lr * grad
-
 def load_mnist():
-    """
-    Load the MNIST dataset with custom preprocessing.
-
-    Returns:
-    torch DataLoader: DataLoader for the MNIST dataset.
-    """
-    # Custom transformation: Convert images to tensors and normalize to [0, 1]
     def transform(image):
         image = torch.tensor(image, dtype=torch.float32) / 255.0
         return image
@@ -337,12 +177,6 @@ def load_mnist():
     return train_loader
 
 def visualize_results(fake_data):
-    """
-    Visualize the generated images.
-
-    Args:
-    fake_data (torch.Tensor): Tensor of generated fake data.
-    """
     fake_images = fake_data.view(-1, 28, 28).cpu().detach()
     fig, axes = plt.subplots(1, 5, figsize=(10, 2))
     for i in range(5):
@@ -351,7 +185,6 @@ def visualize_results(fake_data):
     plt.show()
 
 def save_models(generator, discriminator, generator_path='generator.pth', discriminator_path='discriminator.pth'):
-    # save generator params
     torch.save({
         'W1': generator.W1,
         'b1': generator.b1,
@@ -363,7 +196,6 @@ def save_models(generator, discriminator, generator_path='generator.pth', discri
         'b4': generator.b4
     }, generator_path)
     
-    # save discriminator params
     torch.save({
         'W1': discriminator.W1,
         'b1': discriminator.b1,
@@ -377,112 +209,149 @@ def save_models(generator, discriminator, generator_path='generator.pth', discri
     
     print("Models have been saved.")
 
-def train(generator, discriminator, data_loader, num_epochs=1000, lr=0.01):
+class Adam:
+    def __init__(self, params, lr=0.0002, betas=(0.5, 0.999)):
+        """
+        Initialize the Adam optimizer.
+        We use Adam here as opposed to SGD for a couple of reasons:
+        - SGD is primarily interested in finding the mode of a distribution by finding the parameters that minimize the loss function, rather than modeling the distribution itself. For a generative model like a GAN, this is not useful.
+        - SGD also tends to introduce some noise -- because it computes the gradient based on a random subset of the data at each step, it won't cover the full distribution, since each batch is a subset!
+        - Adam uses adaptive learning rates for each parameter, adjusting them based on the first and second moments (mean and variance) of the gradients. It also maintains momentum, which is important in generative models like GANs, that have complex loss functions.
+
+        Args:
+            params (list): List of dictionaries containing 'params' (parameter tensors) and 'grads'.
+            lr (float): Learning rate.
+            betas (tuple): Coefficients for computing running averages.
+            epsilon (float): Small value to prevent division by zero.
+
+        Note that this implementation is heavily adapted from https://github.com/thetechdude124/Adam-Optimization-From-Scratch/blob/master/CustomAdam.py and my own research :)
+        """
+        self.lr = lr
+        self.beta1, self.beta2 = betas
+        self.epsilon = epsilon
+        self.t = 0  
+
+        self.m = [torch.zeros_like(p) for p in params]
+        self.v = [torch.zeros_like(p) for p in params]
+
+    def step(self, params, grads):
+        """
+        Perform a single optimization step.
+
+        Args:
+            params (list): List of parameters to update.
+            grads (list): List of gradients for each parameter.
+        """
+        self.t += 1
+        lr_t = self.lr * (torch.sqrt(1 - self.beta2 ** self.t) / (1 - self.beta1 ** self.t))
+
+        for i in range(len(params)):
+            if grads[i] is None:
+                continue
+
+            # Update biased first moment estimate
+            self.m[i] = self.beta1 * self.m[i] + (1 - self.beta1) * grads[i]
+            
+            self.v[i] = self.beta2 * self.v[i] + (1 - self.beta2) * (grads[i] ** 2)
+            m_hat = self.m[i] / (1 - self.beta1 ** self.t)
+            v_hat = self.v[i] / (1 - self.beta2 ** self.t)
+            params[i] -= lr_t * m_hat / (torch.sqrt(v_hat) + self.epsilon)
+
+    def zero_grad(self, generator, discriminator):
+        """
+        Reset gradients for all parameters.
+
+        Args:
+            generator (Generator): Generator model.
+            discriminator (Discriminator): Discriminator model.
+        """
+        generator.zero_grad()
+        discriminator.zero_grad()
+
+def train(generator, discriminator, data_loader, num_epochs=1000, lr=0.0002):
     """
-    Train the GAN model with custom SGD optimizer.
+    Train the GAN model with custom Adam optimizer.
 
     Args:
-    generator (Generator): Generator model.
-    discriminator (Discriminator): Discriminator model.
-    data_loader (torch.utils.data.DataLoader): DataLoader for the real data.
-    num_epochs (int): Number of training epochs.
-    lr (float): Learning rate for the optimizers.
+        generator (Generator): Generator model.
+        discriminator (Discriminator): Discriminator model.
+        data_loader (DataLoader): DataLoader for the real data.
+        num_epochs (int): Number of training epochs.
+        lr (float): Learning rate for the optimizers.
     """
-    for epoch in range(num_epochs):
+    # Collect all generator and discriminator parameters
+    gen_params = [generator.W1, generator.b1, generator.W2, generator.b2,
+                  generator.W3, generator.b3, generator.W4, generator.b4]
+    disc_params = [discriminator.W1, discriminator.b1, discriminator.W2, discriminator.b2,
+                  discriminator.W3, discriminator.b3, discriminator.W4, discriminator.b4]
+
+    # Initialize Adam optimizers for generator and discriminator
+    optimizer_g = Adam(gen_params, lr=lr)
+    optimizer_d = Adam(disc_params, lr=lr)
+
+    for epoch in range(1, num_epochs + 1):
         for real_images, _ in data_loader:
             # Prepare real data
             real_data = real_images.view(-1, 28*28).to(device)
             real_data = (real_data - 0.5) / 0.5  # Normalize to [-1, 1]
             batch_size = real_data.size(0)
-            
+
             # Labels for real and fake data
             real_labels = torch.ones(batch_size, 1, device=device)
             fake_labels = torch.zeros(batch_size, 1, device=device)
-            
+
             ########## Train Discriminator ##########
-            # Zero out the gradients
-            discriminator.d_W1.zero_()
-            discriminator.d_b1.zero_()
-            discriminator.d_W2.zero_()
-            discriminator.d_b2.zero_()
-            discriminator.d_W3.zero_()
-            discriminator.d_b3.zero_()
-            discriminator.d_W4.zero_()
-            discriminator.d_b4.zero_()
-            
             # Forward pass on real data
             real_output = discriminator.forward(real_data)
-            # Compute loss on real data
             loss_d_real = compute_bce_loss(real_output, real_labels)
-            # Compute gradient of loss wrt discriminator output
             d_loss_d_output_real = compute_bce_loss_derivative(real_output, real_labels)
-            # Backward pass on real data
             discriminator.backward(d_loss_d_output_real)
-            
+
             # Forward pass fake data
             z = torch.randn(batch_size, generator.W1.size(0), device=device)
             fake_data = generator.forward(z)
             fake_output = discriminator.forward(fake_data.detach())
-            # Compute loss on fake data
             loss_d_fake = compute_bce_loss(fake_output, fake_labels)
-            # Compute gradient of loss wrt discriminator output
             d_loss_d_output_fake = compute_bce_loss_derivative(fake_output, fake_labels)
-            # Backward pass on fake data
             discriminator.backward(d_loss_d_output_fake)
-            
+
+            # Collect discriminator gradients
+            grad_disc = [discriminator.grad_W1, discriminator.grad_b1,
+                         discriminator.grad_W2, discriminator.grad_b2,
+                         discriminator.grad_W3, discriminator.grad_b3,
+                         discriminator.grad_W4, discriminator.grad_b4]
+
             # Update discriminator parameters
-            update_params(
-                [discriminator.W1, discriminator.b1, discriminator.W2, discriminator.b2,
-                 discriminator.W3, discriminator.b3, discriminator.W4, discriminator.b4],
-                [discriminator.d_W1, discriminator.d_b1, discriminator.d_W2, discriminator.d_b2,
-                 discriminator.d_W3, discriminator.d_b3, discriminator.d_W4, discriminator.d_b4],
-                lr
-            )
-            
+            optimizer_d.step(disc_params, grad_disc)
+
+            # Zero discriminator gradients
+            discriminator.zero_grad()
+
             ########## Train Generator ##########
-            # Zero out the gradients
-            generator.d_W1.zero_()
-            generator.d_b1.zero_()
-            generator.d_W2.zero_()
-            generator.d_b2.zero_()
-            generator.d_W3.zero_()
-            generator.d_b3.zero_()
-            generator.d_W4.zero_()
-            generator.d_b4.zero_()
-            
             # Forward pass fake data through discriminator
             fake_output = discriminator.forward(fake_data)
-            # Compute generator loss
             loss_g = compute_bce_loss(fake_output, real_labels)
-            # Compute gradient of loss w.r.t. discriminator output
             d_loss_g_output = compute_bce_loss_derivative(fake_output, real_labels)
-            # Backward pass through discriminator to get gradients w.r.t. fake data
-            discriminator.d_W1.zero_()
-            discriminator.d_b1.zero_()
-            discriminator.d_W2.zero_()
-            discriminator.d_b2.zero_()
-            discriminator.d_W3.zero_()
-            discriminator.d_b3.zero_()
-            discriminator.d_W4.zero_()
-            discriminator.d_b4.zero_()
             discriminator.backward(d_loss_g_output)
-            d_fake_data = torch.matmul(d_loss_g_output * sigmoid_derivative(discriminator.output), discriminator.W1.t())
-            d_fake_data = d_fake_data * relu_derivative(discriminator.a1)
+            # Note: Here we need to backpropagate through the discriminator to the generator
 
-            # Backward pass through generator
-            generator.backward(d_fake_data)
+            # Collect generator gradients
+            grad_gen = [generator.grad_W1, generator.grad_b1,
+                        generator.grad_W2, generator.grad_b2,
+                        generator.grad_W3, generator.grad_b3,
+                        generator.grad_W4, generator.grad_b4]
+
             # Update generator parameters
-            update_params(
-                [generator.W1, generator.b1, generator.W2, generator.b2,
-                 generator.W3, generator.b3, generator.W4, generator.b4],
-                [generator.d_W1, generator.d_b1, generator.d_W2, generator.d_b2,
-                 generator.d_W3, generator.d_b3, generator.d_W4, generator.d_b4],
-                lr
-            )
-            
-        if epoch % 100 == 0:
-            print(f"Epoch {epoch}, Loss D: {loss_d_real.item() + loss_d_fake.item()}, Loss G: {loss_g.item()}")
+            optimizer_g.step(gen_params, grad_gen)
+
+            # Zero generator gradients
+            generator.zero_grad()
+
+        if epoch % 100 == 0 or epoch == 1:
+            print(f"Epoch {epoch}, Loss D: {loss_d_real.item() + loss_d_fake.item():.4f}, Loss G: {loss_g.item():.4f}")
             visualize_results(fake_data)
+
+    save_models(generator, discriminator)
 
 if __name__ == "__main__":
     input_dim = 100      # Latent space dimension
@@ -494,44 +363,8 @@ if __name__ == "__main__":
     generator = Generator(input_dim, hidden_dim1, hidden_dim2, output_dim)
     discriminator = Discriminator(output_dim, hidden_dim1, hidden_dim2, 1)
 
-    # Move models to device
-    generator.W1 = generator.W1.to(device)
-    generator.b1 = generator.b1.to(device)
-    generator.W2 = generator.W2.to(device)
-    generator.b2 = generator.b2.to(device)
-    generator.W3 = generator.W3.to(device)
-    generator.b3 = generator.b3.to(device)
-    generator.W4 = generator.W4.to(device)
-    generator.b4 = generator.b4.to(device)
-    generator.d_W1 = generator.d_W1.to(device)
-    generator.d_b1 = generator.d_b1.to(device)
-    generator.d_W2 = generator.d_W2.to(device)
-    generator.d_b2 = generator.d_b2.to(device)
-    generator.d_W3 = generator.d_W3.to(device)
-    generator.d_b3 = generator.d_b3.to(device)
-    generator.d_W4 = generator.d_W4.to(device)
-    generator.d_b4 = generator.d_b4.to(device)
-
-    discriminator.W1 = discriminator.W1.to(device)
-    discriminator.b1 = discriminator.b1.to(device)
-    discriminator.W2 = discriminator.W2.to(device)
-    discriminator.b2 = discriminator.b2.to(device)
-    discriminator.W3 = discriminator.W3.to(device)
-    discriminator.b3 = discriminator.b3.to(device)
-    discriminator.W4 = discriminator.W4.to(device)
-    discriminator.b4 = discriminator.b4.to(device)
-    discriminator.d_W1 = discriminator.d_W1.to(device)
-    discriminator.d_b1 = discriminator.d_b1.to(device)
-    discriminator.d_W2 = discriminator.d_W2.to(device)
-    discriminator.d_b2 = discriminator.d_b2.to(device)
-    discriminator.d_W3 = discriminator.d_W3.to(device)
-    discriminator.d_b3 = discriminator.d_b3.to(device)
-    discriminator.d_W4 = discriminator.d_W4.to(device)
-    discriminator.d_b4 = discriminator.d_b4.to(device)
-
     # Load data
     data_loader = load_mnist()
 
     # Train the GAN
-    train(generator, discriminator, data_loader, num_epochs=1000, lr=0.01)
-    save_models(generator, discriminator, data_loader)
+    train(generator, discriminator, data_loader, num_epochs=1000, lr=0.0002)
