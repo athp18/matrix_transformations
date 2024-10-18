@@ -155,10 +155,6 @@ def compute_bce_loss_derivative(output, target):
     return (output - target) / ((output + epsilon) * (1 - output + epsilon)) / output.size(0)
 
 def load_mnist():
-    def transform(image):
-        image = torch.tensor(image, dtype=torch.float32) / 255.0
-        return image
-
     train_dataset = MNIST(root='./data', train=True, download=True, transform=transform)
     train_loader = DataLoader(dataset=train_dataset, batch_size=64, shuffle=True)
     return train_loader
