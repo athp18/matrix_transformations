@@ -1,6 +1,7 @@
 import torch
 from PIL import Image
 import numpy as np
+#from torchvision.transforms.functional import pil_to_tensor
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -17,6 +18,8 @@ def transform(image):
     if isinstance(image, Image.Image):
         # first convert to grayscale
         image = image.convert('L')
+        #image = pil_to_tensor(image)
+        # Note: to avoid overloading memory, I am not going to use pil_to_tensor, which performs a deep copy of the underlying array; instead, I'll do np.array(image) to functionally wrap the data as a tensor
         image = torch.tensor(np.array(image), dtype=torch.float32) / 255.0
     elif isinstance(image, torch.Tensor):
         image /= 255.0
@@ -34,8 +37,9 @@ def relu(x):
     Returns:
     torch.Tensor: Output tensor after applying ReLU.
     """
-    zeros = torch.zeros_like(x)
-    return torch.maximum(zeros, x)
+    #zeros = torch.zeros_like(x)
+    #return torch.maximum(zeros, x)
+    return torch.relu(x)
 
 def relu_derivative(x):
     """
@@ -59,7 +63,8 @@ def sigmoid(x):
     Returns:
     torch.Tensor: Output tensor after applying sigmoid.
     """
-    return 1 / (1 + torch.exp(-x))
+    return torch.sigmoid(x)
+    #return 1 / (1 + torch.exp(-x))
 
 def sigmoid_derivative(y):
     """
