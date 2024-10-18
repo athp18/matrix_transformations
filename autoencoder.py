@@ -292,3 +292,5 @@ if __name__ == "__main__":
     
     # Train the Autoencoder
     train(autoencoder, data_loader, num_epochs=num_epochs, lr=learning_rate)
+    generated_images = generate_image(autoencoder, code_dim=code_dim)
+    visualize_generated_images(generated_images, n=10)
