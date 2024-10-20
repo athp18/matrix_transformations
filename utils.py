@@ -5,7 +5,7 @@ import numpy as np
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-def _normalize_image(tensor, min_val=0, max_val=255):
+def normalize_image(tensor, min_val=0, max_val=255):
     """
     Normalize a tensor to values between 0 and 1.
     
