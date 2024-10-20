@@ -2,15 +2,12 @@ from utils import *
 import torch
 from torchvision import datasets
 from torch.utils.data import DataLoader
-from PIL import Image
-import numpy as np
 import os
 import random
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 
 torch.manual_seed(42)
-np.random.seed(42)
 random.seed(42)
 
 def softmax(x):
@@ -48,7 +45,7 @@ class Conv2D:
             self.padding = padding
 
         # Initialize weights and biases
-        self.weights = torch.randn(out_channels, in_channels, *self.kernel_size, device=device) * np.sqrt(2. / (in_channels * self.kernel_size[0] * self.kernel_size[1]))
+        self.weights = torch.randn(out_channels, in_channels, *self.kernel_size, device=device) * torch.sqrt(2. / (in_channels * self.kernel_size[0] * self.kernel_size[1]))
         self.bias = torch.zeros(out_channels, device=device)
 
         # Gradients
@@ -247,7 +244,7 @@ class Linear:
         self.out_features = out_features
 
         # Initialize weights and biases
-        self.weights = torch.randn(in_features, out_features, device=device) * np.sqrt(2. / in_features)
+        self.weights = torch.randn(in_features, out_features, device=device) * torch.sqrt(2. / in_features)
         self.bias = torch.zeros(out_features, device=device)
 
         # gradient update
