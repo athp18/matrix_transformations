@@ -5,27 +5,49 @@ import numpy as np
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+def _normalize_image(tensor, min_val=0, max_val=255):
+    """
+    Normalize a tensor to values between 0 and 1.
+    
+    Args:
+    tensor (torch.Tensor): Image tensor to be normalized.
+    min_val (float): Minimum value in the input range (default: 0).
+    max_val (float): Maximum value in the input range (default: 255).
+    
+    Returns:
+    torch.Tensor: Normalized image tensor.
+    """
+    return (tensor - min_val) / (max_val - min_val)
+
+
 def transform(image):
     """
-    Transform an image to grayscale and normalize it to values between 0 and 1.
+    Transform an image to grayscale and prepare it for further processing.
     
     Args:
     image (PIL.Image.Image or torch.Tensor): Image to be transformed.
     
     Returns:
-    torch.Tensor: Transformed and normalized image.
+    torch.Tensor: Transformed image.
     """
     if isinstance(image, Image.Image):
-        # first convert to grayscale
+        # Convert to grayscale
         image = image.convert('L')
         #image = pil_to_tensor(image)
-        # Note: to avoid overloading memory, I am not going to use pil_to_tensor, which performs a deep copy of the underlying array; instead, I'll do np.array(image) to functionally wrap the data as a tensor
-        image = torch.tensor(np.array(image), dtype=torch.float32) / 255.0
+        # Note: to avoid overloading memory, I am not going to use pil_to_tensor, which performs a deep copy of the underlying array; 
+        # instead, I'll do np.array(image) to functionally wrap the data as a tensor
+        image = torch.tensor(np.array(image), dtype=torch.float32)
     elif isinstance(image, torch.Tensor):
-        image /= 255.0
+        if image.dim() == 3 and image.size(0) in [3, 4]:  # RGB or RGBA
+            image = image.mean(dim=0, keepdim=True)  # grayscale convert
+        elif image.dim() == 4 and image.size(1) in [3, 4]:  # Batch of RGB or RGBA
+            image = image.mean(dim=1, keepdim=True)  # grayscale conversion
+        if image.dim() not in [2, 3]:
+            raise ValueError("Input tensor must be 2D or 3D (with batch dimension)")
     else:
         raise TypeError("Input must be a PIL Image or a torch.Tensor")
-    return image
+
+    return _normalize_image(image)
 
 def relu(x):
     """
