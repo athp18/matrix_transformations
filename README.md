@@ -1,1 +1,1 @@
-An implementation of a standard Generative Adversarial Network (GAN), an Autoencoder model, and a Naive Bayes classifier with pure PyTorch tensors without its abstractions (i.e. torch.nn, torch.optim, or even autograd). This is basically how would I do it in NumPy, but uses PyTorch's built-in GPU support for faster training.
+Implementing machine learning models with PyTorch tensors, without most of its abstractions, such as torch.nn, torch.optim, or autograd. This is basically how would I do it in NumPy, but uses PyTorch's built-in GPU support for a faster training process.
