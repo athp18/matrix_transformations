@@ -98,7 +98,7 @@ class Conv2D:
         cols = cols.permute(1, 2, 0).reshape(x_padded.shape[1] * kernel_h * kernel_w, -1)
         return cols
 
-    def backward(self, grad_output, learning_rate):
+    def backward(self, grad_output, lr):
         """
         Backward pass of the Conv2D layer.
         """
@@ -111,8 +111,8 @@ class Conv2D:
         self.grad_bias = grad_output_reshaped.sum(dim=1)
 
         # Update weights and biases
-        self.weights -= learning_rate * self.grad_weights
-        self.bias -= learning_rate * self.grad_bias
+        self.weights -= lr * self.grad_weights
+        self.bias -= lr * self.grad_bias
 
         # Compute gradient wrt input
         W_flat = self.weights.view(out_channels, -1)
@@ -159,7 +159,7 @@ class ReLU:
         self.input = x
         return relu(x)
 
-    def backward(self, grad_output, learning_rate):
+    def backward(self, grad_output, lr):
         """
         Backward pass of the ReLU activation.
         """
@@ -199,7 +199,7 @@ class MaxPool2D:
         out, self.max_indices = torch.max(self.x_reshaped, dim=4)
         return out
 
-    def backward(self, grad_output, learning_rate):
+    def backward(self, grad_output, lr):
         """
         Backward pass of the MaxPool2D layer.
         """
@@ -226,7 +226,7 @@ class Flatten:
         self.input_shape = x.shape
         return x.view(x.shape[0], -1)
 
-    def backward(self, grad_output, learning_rate):
+    def backward(self, grad_output, lr):
         """
         Backward pass of the Flatten layer.
         """
@@ -255,7 +255,7 @@ class Linear:
         self.input = x
         return x @ self.weights + self.bias
 
-    def backward(self, grad_output, learning_rate):
+    def backward(self, grad_output, lr):
         """
         Backward pass of the Linear layer.
         """
@@ -263,8 +263,8 @@ class Linear:
         self.grad_bias = torch.sum(grad_output, dim=0)
 
         # Update weights and biases
-        self.weights -= learning_rate * self.grad_weights
-        self.bias -= learning_rate * self.grad_bias
+        self.weights -= lr * self.grad_weights
+        self.bias -= lr * self.grad_bias
 
         return grad_output @ self.weights.t()
       
@@ -313,25 +313,25 @@ class CNN:
         x = self.fc2.forward(x)
         return x
 
-    def backward(self, grad_output, learning_rate):
+    def backward(self, grad_output, lr):
         """
         Backward pass through all layers.
         """
-        grad = self.fc2.backward(grad_output, learning_rate)
-        grad = self.relu4.backward(grad, learning_rate)
-        grad = self.fc1.backward(grad, learning_rate)
-        grad = self.flatten.backward(grad, learning_rate)
-        grad = self.pool3.backward(grad, learning_rate)
-        grad = self.relu3.backward(grad, learning_rate)
-        grad = self.conv3.backward(grad, learning_rate)
-        grad = self.pool2.backward(grad, learning_rate)
-        grad = self.relu2.backward(grad, learning_rate)
-        grad = self.conv2.backward(grad, learning_rate)
-        grad = self.pool1.backward(grad, learning_rate)
-        grad = self.relu1.backward(grad, learning_rate)
-        grad = self.conv1.backward(grad, learning_rate)
+        grad = self.fc2.backward(grad_output, lr)
+        grad = self.relu4.backward(grad, lr)
+        grad = self.fc1.backward(grad, lr)
+        grad = self.flatten.backward(grad, lr)
+        grad = self.pool3.backward(grad, lr)
+        grad = self.relu3.backward(grad, lr)
+        grad = self.conv3.backward(grad, lr)
+        grad = self.pool2.backward(grad, lr)
+        grad = self.relu2.backward(grad, lr)
+        grad = self.conv2.backward(grad, lr)
+        grad = self.pool1.backward(grad, lr)
+        grad = self.relu1.backward(grad, lr)
+        grad = self.conv1.backward(grad, lr)
 
-    def train_model(self, train_loader, epochs=10, learning_rate=0.01):
+    def train(self, train_loader, epochs=10, lr=0.01):
         """
         Train the CNN model.
         """
@@ -359,7 +359,7 @@ class CNN:
 
                 # Backward pass
                 grad_loss = cross_entropy_derivative(probs, batch_y)
-                self.backward(grad_loss, learning_rate)
+                self.backward(grad_loss, lr)
 
                 # Update progress bar
                 progress.set_postfix(loss=loss.item(), accuracy=100. * correct / total)
@@ -368,7 +368,7 @@ class CNN:
             accuracy = 100. * correct / total
             print(f"Epoch {epoch+1}/{epochs} - Loss: {avg_loss:.4f} - Accuracy: {accuracy:.2f}%")
 
-    def evaluate_model(self, test_loader):
+    def evaluate(self, test_loader):
         """
         Evaluate the CNN model.
         """
@@ -401,7 +401,6 @@ def load_mnist(batch_size=64):
     test_loader = DataLoader(dataset=test_dataset, batch_size=batch_size, shuffle=False)
     return train_loader, test_loader
 
-# Visualization Functions
 def visualize_results(original_data, predicted_labels, true_labels, n=5):
     """
     Visualize original images with their predicted and true labels.
@@ -414,21 +413,20 @@ def visualize_results(original_data, predicted_labels, true_labels, n=5):
         axes[i].axis('off')
     plt.show()
 
-# Main Function
 if __name__ == "__main__":
     batch_size = 64
     epochs = 5
-    learning_rate = 0.01
+    lr = 0.01
     num_classes = 10
 
     train_loader, test_loader = load_mnist(batch_size=batch_size)
 
     cnn = CNN(num_classes=num_classes)
 
-    cnn.train_model(train_loader, epochs=epochs, learning_rate=learning_rate)
+    cnn.train(train_loader, epochs=epochs, lr=lr)
 
     # Evaluate the CNN
-    cnn.evaluate_model(test_loader)
+    cnn.evaluate(test_loader)
 
     # visualize the predictions
     test_iter = iter(test_loader)
