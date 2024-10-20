@@ -2,13 +2,10 @@ from utils import *
 import torch
 from torchvision import datasets
 from torch.utils.data import DataLoader
-import os
-import random
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 
 torch.manual_seed(42)
-random.seed(42)
 
 def softmax(x):
     exps = torch.exp(x - torch.max(x, dim=1, keepdim=True)[0])
